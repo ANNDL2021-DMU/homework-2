@@ -1,0 +1,16 @@
+{
+  "id": "domenicocacace/homework-2",
+  "title": "homework-2",
+  "code_file": "notebooks/current.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [
+    "domenicocacace/homework2"
+  ],
+  "kernel_sources": [],
+  "competition_sources": []
+}
