@@ -128,12 +128,12 @@ the Luong attention mechanism.\\
 \label{sec:dataset}
 The dataset used in this project consists of 7 time series, each containing 68529 samples.
 As for preprocessing, we normalized the data (MinMax normalization) and extracted the
-sequences to be fed to the network. To extract the sequences we employed 
-a sliding window approach; for our models, we found that a window size of 200 and a stride of 5
+sequences to be fed to the network with a sliding window approach; 
+for our models, we found that a window size of 200 and a stride of 5
 yield the best results.\\
 The models submitted to the competition are trained on the whole dataset, with a 80/20 split between
 training and validation; to determine the performance of a model (based on how well they predict the future) 
-and decide what models to submit we reserved  $\sim$15\% of the original dataset for testing.\footnote{This step became the only method to evaluate our models, due to the Codalab issues}\\
+and decide what models to submit we reserved  $\sim$15\% of the original dataset for testing.\\
 We evaluated both oneshot and autoregressive predictions on most of our model, and found that the
 latter produced better predictions in almost all the cases.
 
@@ -152,9 +152,10 @@ For the sake of consistency, we used the same model structure, consisting of:
 For the recurrent layers we used \texttt{LSTM} and \texttt{GRU};
 we did not consider at all the \texttt{SimpleRNN} layer, due to its vanishing gradient issue.
 We trained our models using the Mean Absolute Error and the Mean Squared Error as accuracy and loss 
-functions respectively; we also employed early stopping (max 200 epochs) and learning rate reduction.
+functions respectively (we also tried RMSE as loss, and noticed no significant change).
+In addition, we employed early stopping (max 200 epochs) and learning rate reduction.
 
-Tests with \textit{unidirectional} layers yielded similar results for both LSTM and GRU layers;
+Tests with \textit{unidirectional} layers yielded similar results (RMSE around 9.5) for both LSTM and GRU layers;
 changing the number of units per layer (50, 100, 256) and the number of layers (2, 3, 4) did not 
 bring a significant improvements. During this phase we observed that, in some cases, there was
 a jump discontinuity between the last input and the first predicted value: to solve this issue
@@ -180,8 +181,8 @@ as above, we changed the number of units per layer and the number of recurrent l
 We observed that the BiGRU models had significantly worse performances than BiLSTM ones 
 for every variation tested: we attributed these outcomes to the structure of the memory
 units, as GRUs have less parameters than LSTM units.\\
-Regarding BiLSTM models, we obtained the best results with 3 recurrent layers, while increasing 
-the number of layers yields slightly worse results.
+Regarding BiLSTM models, we obtained the best results with 3 recurrent layers (RMSE 4.0945), while increasing 
+the number of layers yields slightly worse results (RMSE 5.1252).
 \begin{figure}[h]
     \centering
     \includegraphics[width=\linewidth]{pics/pred_BiLSTM.png}
@@ -191,8 +192,8 @@ the number of layers yields slightly worse results.
 \section{To seq2seq and beyond}
 \label{seq2seq}
 \textbf{Disclaimer:} all the models presented in this section have been 
-developed after the CodaLab outage; the results we present have been obtained
-via cross validation, not on the secret test set.\\
+developed during the Codalab outage; the results we got via cross validation
+on our local test set differ significantly from the ones we got on the secret test set.\\
 
 Our next step consists in building an encoder/decoder model. Instead of starting from 
 scratch, we employed the results obtained in the previous experiments; following the
@@ -204,19 +205,20 @@ classic encoder/decoder structure, we have:
     \item 1 \texttt{TimeDistributed} Dense output layer
 \end{itemize}
 
-From our tests we can see results slightly better, on average, to the ones obtained with the 
-BiLSTM model; this did not come as a surprise to us, but gave us a base for the final step.
+The results on the local test set suggested that this model performed similarly to the 
+3-layer BiLSTM; however, this model performs way worse (RMSE 9.7349): by taking a closer look
+at the results, we can see that the RMSE quickly diverges as we go \textit{deeper} in the
+secret test set, going from 3.86 to 10.29 by moving from the first to the second quarter.
 
 \subsection{Luong attention}
 As a final step, we implemented the Luong attention mechanism; in this phase we had
 some trouble with the \texttt{Attention} layer provided by Keras, so we implemented
-it manually with dot products and Softmax (see the code and the model scheme in the appendix for more details).\\
+it manually with dot products and Softmax (see the code and the model scheme in the appendix for more details).
 
-The results obtained with this last model are, on average, better than the previous:
-we can note how the gap between the predicted and actual value shrinks, e.g. in 
-proximity of the minima of \textit{Hype Root} and \textit{Crunchiness}, or stays
-almost the same.
-
+By looking at the predictions on the local test set it looks like this model can outperform the 3-layer BiLSTM one,
+but the results on the secret test set say otherwise, showing a RMSE of 4.9470. Even though this isn't our best model,
+we were able to significantly improve the performance, keeping the RMSE lower among the whole secret test set 
+(3.89, 4.69, 6.02 for the three quarters respectively).
 
 \begin{figure}[h]
     \centering
@@ -228,8 +230,10 @@ almost the same.
 In this report we presented our small journey in the world of time series forecasting with 
 neural network architectures. Starting from the basic memory blocks we built and evaluated 
 several models, spacing between different architectures.
-In the end we found that the encoder/decoder architecture, in particular
-with the Luong attention mechanism, yielded the best results in our scenario.\\
+We expected the encoder/decoder with attention to be our best performing model but,
+due to our implementation (we think we might have overcomplicated things a little bit),
+the simpler 3-layer BiLSTM model showed the best results; despite this, we had the chance to 
+see first-hand how powerful the attention mechanism can be and why it is such a big deal.
 
 \newpage
 \section*{Appendix A: \textit{BiLSTM} model}
@@ -245,6 +249,9 @@ with the Luong attention mechanism, yielded the best results in our scenario.\\
     \includegraphics[width=0.8\linewidth]{pics/attention_model.png}
     \caption{Encoder/Decoder with Luong attention}
 \end{figure}
+For the sake of clarity, we omitted the dropout layers; it is
+important to note that without dropout this model is way too overfit, scoring a RMSE of 32.68 on the 
+secret test set.
 
 
 
